@@ -26,7 +26,7 @@ SECRET_KEY = "django-insecure-2!vr6-5@j(u&s_9x)aa#9c4+&)((6h!_js*t&@7%9v0)dqaic8
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['aws_ec2_dataserver', '54.193.47.7', '127.0.0.1']
+ALLOWED_HOSTS = ['aws_ec2_dataserver', '54.193.47.7', '127.0.0.1', 'localhost']
 
 DATABASES = {
     'default': {
@@ -51,8 +51,13 @@ INSTALLED_APPS = [
 
 
 REST_FRAMEWORK = {
+     'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
     ),
 }
 
