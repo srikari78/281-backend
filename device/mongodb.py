@@ -9,31 +9,19 @@ class MongoDBProcessor:
         self.drone_collection = self.db['drone']
 
     # get device info   
-    def get_drone_info(self, drone_id):
-        drone_info = self.drone_collection.find_one({'drone_id' : drone_id})
-        print(drone_id, drone_info)
+    def get_drone_info(self, id):
+        drone_info = self.drone_collection.find_one({'id' : id})
+        print(id, drone_info)
         if drone_info is not None:
             latitude = drone_info['latitude']
             longitude = drone_info['longitude']
             altitude = drone_info['altitude']
-            district_id = drone_info['district_id']
+            dist_id = drone_info['dist_id']
             timestamp = str(timezone.now())
-            
-            """ else: 
-            latitude = 10
-            longitude = 10
-            altitude =10
-            district_id = 1
-            timestamp = "10/5/23 4:47"
-            """
+            video_url = drone_info['video_url']
+            status = drone_info['status']
         
-        
-
-        return {'drone_id': drone_id, 'latitude': latitude, 'longitude': longitude, 'altitude': altitude,  'timestamp':timestamp ,'district_id': district_id}
-
-    #def get_image_url(self, index):
-     #   drone_info = self.drone_collection.find_one({'cctv.index': index})
-      #  image_url = drone_info['cctv']['imageData']['static']['currentImageURL']
-       # return image_url
+        return {'drone_id': id, 'latitude': latitude, 'longitude': longitude, 'altitude': altitude,  'timestamp':timestamp ,'dist_id': dist_id, 'video_url': video_url, 'status': status}
+    
     
     

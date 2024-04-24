@@ -8,5 +8,6 @@ urlpatterns = [
     path('GetDevice', views.getDeviceInfo),
     path('DeleteDevice', views.deleteDevice),
     path('DisableDevice/', views.disableDevice),
-    path('GetDeviceOfDistrict/', views.get_device_of_district_id),
+    path('getVideoUrls', views.get_video_urls),
+    path('getAllDevices', views.getAllDevices),
 ]
