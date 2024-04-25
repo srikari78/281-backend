@@ -4,6 +4,10 @@ from .mongodb import MongoDBProcessor
 from .mysql import MysqlProcessor
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework import status
+from rest_framework.response import Response
+
+
 from .models import Device
 
 import json
@@ -124,27 +128,13 @@ def get_video_urls(request):
 
 @csrf_exempt 
 def getAllDevices(request):
-    if request.method == 'POST':
-        data = json.loads(request.body)
-        print(data)
-        id = data.get('id')
-        try:
-            device = Device.objects.get(id=id)
-            device_data = {
-                'id': device.id,
-                'latitude': device.latitude,
-                'longitude': device.longitude,
-                'altitude': device.altitude,
-                'timestamp': device.timestamp,
-                'dist_id': device.dist_id,
-                'video_url': device.video_url,
-                'status':device.status
-            }
-            return JsonResponse(device_data)
-        except Device.DoesNotExist:
-            return JsonResponse({'error': 'Device not found'}, status=404)
+    if request.method == 'GET':
+        db = MysqlProcessor()
+        devices = db.get_all_devices()
+        print("getAllDevices",devices)
+        return JsonResponse(devices, status=status.HTTP_200_OK)
     else:
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
+        return JsonResponse({'error': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
         
 def updateImage(request):
     id = "1"

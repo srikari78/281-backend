@@ -79,5 +79,23 @@ class MysqlProcessor:
                 'timestamp': device.timestamp,
                 'video_url': device.video_url
             })
+    
+    def get_all_devices(self):
+        devices = Device.objects.all().order_by('id')
+        device_info = {"drones": {"0":[], "1":[], "2":[], "3":[], "4":[], "5":[], "6":[], "7":[], "8":[], "9":[], "10":[], "11":[], "12":[]}}
+        for device in devices:
+            data = {
+                'id': device.id,
+                'latitude': device.latitude,
+                'longitude': device.longitude,
+                'altitude': device.altitude,
+                'dist_id': device.dist_id,
+                'timestamp': device.timestamp,
+                'video_url': device.video_url,
+                'status': 'active' if device.status else 'inactive'
+            }
+            device_info["drones"][str(device.dist_id)].append(data)
+            device_info["drones"]["0"].append(data)
+            
         return device_info
     
