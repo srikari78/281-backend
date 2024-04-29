@@ -10,4 +10,7 @@ urlpatterns = [
     path('DisableDevice/', views.disableDevice),
     path('getVideoUrls', views.get_video_urls),
     path('getAllDevices', views.getAllDevices),
+    path('SearchedDevice/', views.searchedDevice),
+    path('StreamVideo/', views.streamVideo),
+    path('StopStream/', views.stopStream),
 ]

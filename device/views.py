@@ -1,9 +1,17 @@
+from queue import Queue
+import cv2
 from django.shortcuts import render, HttpResponse, redirect
-from django.http import HttpResponseNotAllowed, JsonResponse
-from .mongodb import MongoDBProcessor
+from django.http import HttpResponseNotAllowed, JsonResponse, StreamingHttpResponse
+
+from .detection import detect
 from .mysql import MysqlProcessor
+from .mongodb import MongoDBProcessor
+
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+
+from rest_framework.decorators import api_view
+
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -12,6 +20,7 @@ from .models import Device
 
 import json
 
+streaming = True
 
 @csrf_exempt
 def addDevice(request):
@@ -131,10 +140,12 @@ def getAllDevices(request):
     if request.method == 'GET':
         db = MysqlProcessor()
         devices = db.get_all_devices()
-        print("getAllDevices",devices)
+        #print("getAllDevices",devices)
         return JsonResponse(devices, status=status.HTTP_200_OK)
     else:
         return JsonResponse({'error': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+    
         
 def updateImage(request):
     id = "1"
@@ -155,3 +166,74 @@ def disableDevice(request):
         return HttpResponse('Device disabled')
     else:
         return HttpResponse('Device not found')
+
+# added from yifu's code all 3 functions
+    
+@csrf_exempt
+def searchedDevice(request):
+    if request.method == 'GET':
+        search_term = request.query_params.get('search')
+        # search device
+        db = MongoDBProcessor()
+        result = db.search_device(search_term)
+        return JsonResponse(result, status=status.HTTP_200_OK)
+    else:
+        return JsonResponse({'error': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+        
+
+@api_view(['GET'])
+def streamVideo(request):
+    id = request.query_params.get('id')
+    print("Received id for stream video:", id)
+    mongodb = MongoDBProcessor()
+    deviceInfo = mongodb.get_drone_info(id)
+    device_data = {
+        'id': id,
+        'videourl' : deviceInfo['video_url']
+    }
+    print("stream video", device_data)
+    print(deviceInfo['video_url'])
+    # get video stream
+    # Open the video file
+    BUFFER_SIZE = 30
+    cap = cv2.VideoCapture(deviceInfo['video_url'])
+    print("streamvideo from cap cv2",cap)
+    # The buffer for storing frames
+    buffer = Queue(maxsize=BUFFER_SIZE)
+    print(streaming)
+    def generate():
+        while streaming:
+            ret, frame = cap.read()
+            if ret:
+                # frame = cv2.resize(frame, (640, 360))
+                results = detect(frame, incident=False)
+                results_incident = detect(frame, incident=True)
+                # Draw rectangle
+                for result in results:
+                    position = [int(p) for p in result['position']]
+                    cv2.rectangle(frame, (position[0], position[1]), (position[2], position[3]), (0, 255, 0), 2)
+                    cv2.putText(frame, result['label'], (position[0], position[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 0), 2, cv2.LINE_AA)
+                
+                for result in results_incident:
+                    position = [int(p) for p in result['position']]
+                    cv2.rectangle(frame, (position[0], position[1]), (position[2], position[3]), (0, 0, 255), 2)
+                    cv2.putText(frame, result['label'], (position[0], position[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 2, cv2.LINE_AA)
+
+                # Encode the frame as JPEG
+                ret, jpeg = cv2.imencode('.jpeg', frame)
+                if ret:
+                    # Add the frame to the buffer
+                    buffer.put(jpeg.tobytes())
+
+                if buffer:
+                    yield (b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + buffer.get() + b'\r\n\r\n')
+    
+    return StreamingHttpResponse(generate(), content_type='multipart/x-mixed-replace; boundary=frame')
+
+@csrf_exempt
+def stopStream(request):
+    if request.method == 'GET':
+        global streaming
+        streaming = False
+        return JsonResponse('Stream stopped', status=status.HTTP_200_OK)
