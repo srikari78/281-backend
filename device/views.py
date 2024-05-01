@@ -180,7 +180,12 @@ def searchedDevice(request):
     else:
         return JsonResponse({'error': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
-        
+@api_view(['GET'])
+def GetAllIncidences(request):
+    # get all incidents
+    db = MysqlProcessor()
+    incidents = db.get_all_incidents()
+    return Response(incidents, status=status.HTTP_200_OK)        
 
 @api_view(['GET'])
 def streamVideo(request):
@@ -190,7 +195,10 @@ def streamVideo(request):
     deviceInfo = mongodb.get_drone_info(id)
     device_data = {
         'id': id,
-        'videourl' : deviceInfo['video_url']
+        'videourl' : deviceInfo['video_url'],
+        'latitude' : deviceInfo['latitude'],
+        'longitude': deviceInfo['longitude'],
+        'dist_id' : deviceInfo['dist_id']
     }
     print("stream video", device_data)
     print(deviceInfo['video_url'])
@@ -220,6 +228,18 @@ def streamVideo(request):
                     cv2.rectangle(frame, (position[0], position[1]), (position[2], position[3]), (0, 0, 255), 2)
                     cv2.putText(frame, result['label'], (position[0], position[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 2, cv2.LINE_AA)
 
+                # Add the incident to the database
+                if len(results_incident) > 0:
+                    db = MysqlProcessor()
+                    if db.add_incidents(deviceInfo['latitude'], deviceInfo['longitude'], 'incident', deviceInfo['dist_id']) == False:
+                        print('Incident already exists')
+                    else:
+                        print('Incident added')
+
+                # Display total number of cars
+                cv2.putText(frame, f'Car: {len(results)}', (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2, cv2.LINE_AA)
+                cv2.putText(frame, f'Incident: {len(results_incident)}', (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2, cv2.LINE_AA)
+
                 # Encode the frame as JPEG
                 ret, jpeg = cv2.imencode('.jpeg', frame)
                 if ret:
@@ -231,9 +251,8 @@ def streamVideo(request):
     
     return StreamingHttpResponse(generate(), content_type='multipart/x-mixed-replace; boundary=frame')
 
-@csrf_exempt
+@api_view(['GET'])
 def stopStream(request):
-    if request.method == 'GET':
-        global streaming
-        streaming = False
-        return JsonResponse('Stream stopped', status=status.HTTP_200_OK)
+    global streaming
+    streaming = False
+    return Response('Stream stopped', status=status.HTTP_200_OK)

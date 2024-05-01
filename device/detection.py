@@ -13,9 +13,11 @@ def detect(img, incident=False):
     for result in results:
         if len(result.boxes.cls)>0:
             for i in range(len(result.boxes.cls)):
+                confidence = result.boxes.conf[i].item()
+                if incident and confidence < 0.8:
+                    break
                 label_id = int(result.boxes.cls[i].item())
                 label = result.names[label_id]
-                confidence = result.boxes.conf[i].item()
                 position = result.boxes.xyxy[i].tolist()
                 result_data = {'label': label, 'confidence': confidence, 'position': position}
                 results_list.append(result_data)
