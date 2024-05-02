@@ -1,6 +1,5 @@
 from django.db import models
 #for using AI models
-import torch 
 
 
 # Create your models here.
